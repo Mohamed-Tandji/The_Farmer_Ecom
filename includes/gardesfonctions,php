@@ -1,0 +1,1339 @@
+<?php
+////Seconde version
+
+session_start();
+
+
+if(!isset($_SESSION['panier'])){
+    $_SESSION['panier']=array();
+}
+
+
+function connexionDB(){
+    $dbhost ="localhost";
+    $dbuser = "root";
+    $dbpassword ="";
+    $dbname ="Ferme";
+    $port = 3306;
+
+    $connexion = mysqli_connect($dbhost,$dbuser,$dbpassword,$dbname,$port);
+    if(!$connexion){
+        die("Echec de la connexion a la base de donnee".mysqli_connect_error());
+    }
+    return $connexion;
+}
+
+function ajouterPanier($id,$quantiteDemander){
+    $_SESSION['panier'][$id]=$quantiteDemander;
+
+    header('Location: ./Panier.php');
+}
+function EnregistrerGenisse($nom ,$nom_pere ,$nom_mere ,$prix ,$race,$capacite_lait ,$resistance ,$race_type ,$disponibilite,$chemin){
+
+    $conn= connexionDB();
+    $sql="INSERT into Genisses(nom ,nom_pere ,nom_mere ,prix ,race ,capacite_lait,resistance ,race_type ,disponibilite) Values(?,?,?,?,?,?,?,?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("sssdsdisi",$nom ,$nom_pere ,$nom_mere ,$prix ,$race,$capacite_lait ,$resistance ,$race_type ,$disponibilite);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+    $id_Taureaux=$conn->insert_id;
+    enregistrerImage_Genisse($chemin,$id);
+
+   }
+
+}
+function enregistrerImage_Genisse($chemin,$id){
+
+    $conn= connexionDB();
+    $sql="INSERT into Image_Genisses (chemin,id_Genisses) Values(?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("si",$chemin,$id);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+header('Location: ./GestionGenisses.php');
+   }
+}
+function getAllGenisses(){
+    $Genisses = array();
+    $conn =connexionDB();
+    $sql="SELECT  G.id, G.nom, G.nom_pere,  G.nom_mere, G.capacite_lait, G.prix, G.race, G.resistance, G.disponibilite ,I.chemin from Genisses G
+    join Image_Genisses I on I.id_Genisses=G.id";
+    $stmt=$conn->prepare($sql);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+
+    foreach($resultats as $taureau){
+        $Genisses[]=$genisse;
+    }
+    return $Genisses;
+   
+}
+
+function ajouterTaureau($nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite ){
+    $conn = connexionDB();
+
+    $sql ='INSERT INTO Taureaux(nom ,nom_pere ,nom_mere ,prix ,race ,resistance ,race_type ,disponibilite ) Values(?,?,?,?,?,?,?,?)';
+    $stmt = $conn->prepare($sql);
+    // string s, int i, float | double d, bool b
+    $stmt->bind_param('sssdsisi',$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite);
+    $resultat = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+
+    // if ($resultat) {
+    //     header('Location: ./ajouterTaureau.php');
+    // }
+    // else{
+    //     echo "Erreur lors de l'ajout du Taureau";
+    // }
+
+   
+}
+
+function countElementPanier(){
+    $taillePanier = count($_SESSION['panier']);
+    return $taillePanier;
+}
+
+function UpdateTaureau($id,$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite ,$image_destination=""){
+
+    $conn =connexionDB();
+    $sql = 'UPDATE Taureaux set nom =?, nom_pere =?, nom_mere =?, prix =?,race =?, resistance =?, race_type=?, disponibilite =?  where id = ?';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('sssdsisii',$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite,$id,);
+    $resultat = $stmt->execute();
+    if ($resultat) {
+        if(!empty($image_destination)){
+            UpdateImage_Taureau($id,$image_destination);
+        }else{
+            header('Location: ./GestionTaureaux.php');
+
+        }
+    }
+  
+
+}
+
+function UpdateImage_Taureau($id_Taureaux,$image_destination){
+
+    $conn =connexionDB();
+    $sql=" UPDATE  Image_Taureaux set chemin =?  where id_Taureaux = ? ";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param('si',$image_destination,$id_Taureaux,);
+    $Est=$stmt->execute();
+    if($Est){
+        header('Location: ./GestionTaureaux.php');
+
+    }
+
+}
+
+function EnregistrerTaureau($nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite,$chemin){
+
+    $conn= connexionDB();
+    $sql="INSERT into Taureaux(nom ,nom_pere ,nom_mere ,prix ,race ,resistance ,race_type ,disponibilite) Values(?,?,?,?,?,?,?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("sssisisi",$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+    $id_Taureaux=$conn->insert_id;
+    enregistrerImage($chemin,$id_Taureaux);
+
+   }
+
+}
+function enregistrerImage($chemin,$id_Taureaux){
+
+    $conn= connexionDB();
+    $sql="INSERT into Image_Taureaux(chemin,id_Taureaux) Values(?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("si",$chemin,$id_Taureaux);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+header('Location: ./GestionUtilisateur.php');
+   }
+}
+
+function getAllTaureaux(){
+    $Taureaux = array();
+    $conn =connexionDB();
+    $sql="SELECT  T.id,T.nom,T.nom_pere, T.nom_mere, T.prix,T.race,T.resistance,T.disponibilite ,I.chemin from Taureaux T
+    join Image_Taureaux I on I.id_Taureaux=T.id";
+    $stmt=$conn->prepare($sql);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+
+    foreach($resultats as $taureau){
+        $Taureaux[]=$taureau;
+    }
+    return $Taureaux;
+   
+  
+}
+
+
+
+function supprimerTaureau($id){
+    $conn = connexionDB();
+    $sql ='DELETE from Taureaux where id = ?';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $resultat = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+
+    if ($resultat) {
+        header('Location: GestionTaureaux.php');
+    }
+    else{
+        echo 'Une erreur lors de la suppression';
+    }
+}
+
+
+
+function getTaureauById($id){
+    $conn = connexionDB();
+
+    $sql = "SELECT  T.id,T.nom,T.nom_pere, T.nom_mere, T.prix,T.race, T.resistance ,T.race_type ,T.disponibilite,I.chemin from Taureaux T
+    join Image_Taureaux I on I.id_Taureaux=T.id  where T.id=?" ;
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $stmt->execute();
+    $resultats = $stmt->get_result();
+
+    $taureau = $resultats->fetch_assoc();
+
+    return $taureau;
+}
+
+function getAllUsers(){
+    $Users=array();
+    $conn =connexionDB();
+    $sql="SELECT  U.id,U.nom,U.prenom,U.email,R.titre from Personne U
+    join Role R on R.id_personne = U.id";
+    $stmt= $conn->prepare($sql);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+    foreach($resultats as $user){
+        $Users[]=$user;
+    }
+    return $Users;
+}
+function VerifAdmin($id){
+$conn=connexionDB();
+    $sql="SELECT  U.id,R.titre from Personne U
+    join Role  on R.id_personne = U.id R where id =? ";
+    $stmt= $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+    $User= $resultats->fetch_assoc();
+    if(isset($User['titre'])&&$User['titre']==="Admin"){
+    header("Location: ./MenuAdmin.php");
+    }else{
+        header("Location: ./Menu.php");
+
+    }
+
+}
+
+function supprimerUser($id){
+    $conn = connexionDB();
+    $sql ='DELETE from Personne where id = ?';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $resultat = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+
+    if ($resultat) {
+        header('Location: ./GestionUtilisateur.php');
+    }
+    else{
+        echo 'Une erreur lors de la suppression';
+    }
+}
+
+function getUserById($id){
+    $conn =connexionDB();
+    // $sql="SELECT  U.id,U.nom,U.prenom,U.email,R.titre from Personne U
+    // join Role R on R.id_personne = U.id  where U.id=? ";
+
+    $sql="SELECT  U.id,U.nom,U.prenom,U.email,R_P.titre from Personne U
+    join Role_Personne R_P on R_P.id_personne = U.id
+    join Role R on R.id = U.id   where U.id=? ";
+
+    $stmt= $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+    $User= $resultats->fetch_assoc();
+    return $User;
+}
+
+function UpdateForUser($nom,$prenom,$email,$mot_de_passe,$id){
+    $conn= connexionDB();
+    $sql='UPDATE Personne set nom=?,prenom=?,email=?,mot_de_passe=? where id=? ';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssssi",$nom,$prenom,$email,$mot_de_passe,$id);
+    $result = $stmt->execute();
+    if($result){
+        header('Location: ./Mon Compte.php');
+    }
+       else{ echo "Une erreur est survenue";}
+}
+function UpdateForAdmin($id,$nom,$prenom,$email,$titre){
+    $conn= connexionDB();
+    $sql='UPDATE Personne set nom= ?,prenom = ?,email= ? where  id= ? ';
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("sssi",$nom,$prenom,$email,$id);
+    $result = $stmt->execute();
+    if($result){
+     UpdateForAdminRole($titre,$id); }
+    else{ echo "Une erreur est survenue";}
+}
+
+function UpdateForAdminRole($titre,$id){
+ $conn= connexionDB();
+ $sql="UPDATE  Role set titre =?   where id_personne= ?";
+ $stmt=$conn->prepare($sql);
+ $stmt->bind_param("si",$titre,$id);
+$IsSave= $stmt->execute();
+if($IsSave){
+   header('Location: ./GestionUtilisateur.php');
+}  
+}
+
+
+///Noo
+function inscription($nom,$prenom,$email,$mot_de_passe,$titre){
+    $conn =connexionDB();
+    $nom = mysqli_real_escape_string($conn,$nom);
+    $prenom = mysqli_real_escape_string($conn,$prenom);
+    $email = mysqli_real_escape_string($conn,$email);
+    $mot_de_passe = mysqli_real_escape_string($conn,$mot_de_passe);
+
+    $mot_de_passe = password_hash($mot_de_passe,PASSWORD_DEFAULT);
+
+       $sql = "INSERT INTO personne(nom,prenom,email,mot_de_passe) values(?,?,?,?)";
+       $stmt = $conn->prepare($sql);
+       $stmt->bind_param("ssss",$nom,$prenom,$email,$mot_de_passe);
+       $result = $stmt->execute();
+       if($result){
+        $id_personne=$conn->insert_id;
+        inscripRole($titre,$id_personne); }
+       else{ echo "Une erreur est survenue";}
+}
+
+function inscripRole($titre,$id_personne){
+    $conn= connexionDB();
+    $sql="INSERT into Role (titre,id_personne) Values(?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("si",$titre,$id_personne);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+      header('Location: ./GestionUtilisateur.php');
+   }  
+}
+///noo
+
+
+
+?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<?php
+
+
+////First version
+session_start();
+
+
+if(!isset($_SESSION['panier'])){
+    $_SESSION['panier']=array();
+}
+
+
+function connexionDB(){
+    $dbhost ="localhost";
+    $dbuser = "root";
+    $dbpassword ="";
+    $dbname ="Ferme";
+    $port = 3306;
+
+    $connexion = mysqli_connect($dbhost,$dbuser,$dbpassword,$dbname,$port);
+    if(!$connexion){
+        die("Echec de la connexion a la base de donnee".mysqli_connect_error());
+    }
+    return $connexion;
+}
+
+function ajouterPanier($id,$quantiteDemander){
+    $_SESSION['panier'][$id]=$quantiteDemander;
+
+    header('Location: ./Panier.php');
+}
+function EnregistrerGenisse($nom ,$nom_pere ,$nom_mere ,$prix ,$race,$capacite_lait ,$resistance ,$race_type ,$disponibilite,$chemin){
+
+    $conn= connexionDB();
+    $sql="INSERT into Genisses(nom ,nom_pere ,nom_mere ,prix ,race ,capacite_lait,resistance ,race_type ,disponibilite) Values(?,?,?,?,?,?,?,?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("sssdsdisi",$nom ,$nom_pere ,$nom_mere ,$prix ,$race,$capacite_lait ,$resistance ,$race_type ,$disponibilite);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+    $id_Taureaux=$conn->insert_id;
+    enregistrerImage_Genisse($chemin,$id);
+
+   }
+
+}
+function enregistrerImage_Genisse($chemin,$id){
+
+    $conn= connexionDB();
+    $sql="INSERT into Image_Genisses (chemin,id_Genisses) Values(?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("si",$chemin,$id);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+header('Location: ./GestionGenisses.php');
+   }
+}
+function getAllGenisses(){
+    $Genisses = array();
+    $conn =connexionDB();
+    $sql="SELECT  G.id, G.nom, G.nom_pere,  G.nom_mere, G.capacite_lait, G.prix, G.race, G.resistance, G.disponibilite ,I.chemin from Genisses G
+    join Image_Genisses I on I.id_Genisses=G.id";
+    $stmt=$conn->prepare($sql);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+
+    foreach($resultats as $taureau){
+        $Genisses[]=$genisse;
+    }
+    return $Genisses;
+   
+}
+
+function ajouterTaureau($nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite ){
+    $conn = connexionDB();
+
+    $sql ='INSERT INTO Taureaux(nom ,nom_pere ,nom_mere ,prix ,race ,resistance ,race_type ,disponibilite ) Values(?,?,?,?,?,?,?,?)';
+    $stmt = $conn->prepare($sql);
+    // string s, int i, float | double d, bool b
+    $stmt->bind_param('sssdsisi',$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite);
+    $resultat = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+
+    // if ($resultat) {
+    //     header('Location: ./ajouterTaureau.php');
+    // }
+    // else{
+    //     echo "Erreur lors de l'ajout du Taureau";
+    // }
+
+   
+}
+
+function countElementPanier(){
+    $taillePanier = count($_SESSION['panier']);
+    return $taillePanier;
+}
+
+function UpdateTaureau($id,$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite ,$image_destination=""){
+
+    $conn =connexionDB();
+    $sql = 'UPDATE Taureaux set nom =?, nom_pere =?, nom_mere =?, prix =?,race =?, resistance =?, race_type=?, disponibilite =?  where id = ?';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('sssdsisii',$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite,$id,);
+    $resultat = $stmt->execute();
+    if ($resultat) {
+        if(!empty($image_destination)){
+            UpdateImage_Taureau($id,$image_destination);
+        }else{
+            header('Location: ./GestionTaureaux.php');
+
+        }
+    }
+  
+
+}
+
+function UpdateImage_Taureau($id_Taureaux,$image_destination){
+
+    $conn =connexionDB();
+    $sql=" UPDATE  Image_Taureaux set chemin =?  where id_Taureaux = ? ";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param('si',$image_destination,$id_Taureaux,);
+    $Est=$stmt->execute();
+    if($Est){
+        header('Location: ./GestionTaureaux.php');
+
+    }
+
+}
+
+function EnregistrerTaureau($nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite,$chemin){
+
+    $conn= connexionDB();
+    $sql="INSERT into Taureaux(nom ,nom_pere ,nom_mere ,prix ,race ,resistance ,race_type ,disponibilite) Values(?,?,?,?,?,?,?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("sssisisi",$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+    $id_Taureaux=$conn->insert_id;
+    enregistrerImage($chemin,$id_Taureaux);
+
+   }
+
+}
+function enregistrerImage($chemin,$id_Taureaux){
+
+    $conn= connexionDB();
+    $sql="INSERT into Image_Taureaux(chemin,id_Taureaux) Values(?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("si",$chemin,$id_Taureaux);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+header('Location: ./GestionUtilisateur.php');
+   }
+}
+
+function getAllTaureaux(){
+    $Taureaux = array();
+    $conn =connexionDB();
+    $sql="SELECT  T.id,T.nom,T.nom_pere, T.nom_mere, T.prix,T.race,T.resistance,T.disponibilite ,I.chemin from Taureaux T
+    join Image_Taureaux I on I.id_Taureaux=T.id";
+    $stmt=$conn->prepare($sql);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+
+    foreach($resultats as $taureau){
+        $Taureaux[]=$taureau;
+    }
+    return $Taureaux;
+   
+  
+}
+
+
+
+function supprimerTaureau($id){
+    $conn = connexionDB();
+    $sql ='DELETE from Taureaux where id = ?';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $resultat = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+
+    if ($resultat) {
+        header('Location: GestionTaureaux.php');
+    }
+    else{
+        echo 'Une erreur lors de la suppression';
+    }
+}
+
+
+
+function getTaureauById($id){
+    $conn = connexionDB();
+
+    $sql = "SELECT  T.id,T.nom,T.nom_pere, T.nom_mere, T.prix,T.race, T.resistance ,T.race_type ,T.disponibilite,I.chemin from Taureaux T
+    join Image_Taureaux I on I.id_Taureaux=T.id  where T.id=?" ;
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $stmt->execute();
+    $resultats = $stmt->get_result();
+
+    $taureau = $resultats->fetch_assoc();
+
+    return $taureau;
+}
+
+function getAllUsers(){
+    $Users=array();
+    $conn =connexionDB();
+    $sql="SELECT  U.id,U.nom,U.prenom,U.email,R.titre from Personne U
+    join Role R on R.id_personne = U.id";
+    $stmt= $conn->prepare($sql);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+    foreach($resultats as $user){
+        $Users[]=$user;
+    }
+    return $Users;
+}
+function VerifAdmin($id){
+$conn=connexionDB();
+    $sql="SELECT  U.id,R.titre from Personne U
+    join Role  on R.id_personne = U.id R where id =? ";
+    $stmt= $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+    $User= $resultats->fetch_assoc();
+    if(isset($User['titre'])&&$User['titre']==="Admin"){
+    header("Location: ./MenuAdmin.php");
+    }else{
+        header("Location: ./Menu.php");
+
+    }
+
+}
+
+function supprimerUser($id){
+    $conn = connexionDB();
+    $sql ='DELETE from Personne where id = ?';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $resultat = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+
+    if ($resultat) {
+        header('Location: ./GestionUtilisateur.php');
+    }
+    else{
+        echo 'Une erreur lors de la suppression';
+    }
+}
+
+function getUserById($id){
+    $conn =connexionDB();
+    $sql="SELECT  U.id,U.nom,U.prenom,U.email,R.titre from Personne U
+    join Role R on R.id_personne = U.id  where U.id=? ";
+    
+    $stmt= $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+    $User= $resultats->fetch_assoc();
+    return $User;
+}
+
+function UpdateForUser($nom,$prenom,$email,$mot_de_passe,$id){
+    $conn= connexionDB();
+    $sql='UPDATE Personne set nom=?,prenom=?,email=?,mot_de_passe=? where id=? ';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssssi",$nom,$prenom,$email,$mot_de_passe,$id);
+    $result = $stmt->execute();
+    if($result){
+        header('Location: ./Mon Compte.php');
+    }
+       else{ echo "Une erreur est survenue";}
+}
+function UpdateForAdmin($id,$nom,$prenom,$email,$titre){
+    $conn= connexionDB();
+    $sql='UPDATE Personne set nom= ?,prenom = ?,email= ? where  id= ? ';
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("sssi",$nom,$prenom,$email,$id);
+    $result = $stmt->execute();
+    if($result){
+     UpdateForAdminRole($titre,$id); }
+    else{ echo "Une erreur est survenue";}
+}
+
+function UpdateForAdminRole($titre,$id){
+ $conn= connexionDB();
+ $sql="UPDATE  Role set titre =?   where id_personne= ?";
+ $stmt=$conn->prepare($sql);
+ $stmt->bind_param("si",$titre,$id);
+$IsSave= $stmt->execute();
+if($IsSave){
+   header('Location: ./GestionUtilisateur.php');
+}  
+}
+
+
+
+function inscription($nom,$prenom,$email,$mot_de_passe,$titre){
+    $conn =connexionDB();
+    $nom = mysqli_real_escape_string($conn,$nom);
+    $prenom = mysqli_real_escape_string($conn,$prenom);
+    $email = mysqli_real_escape_string($conn,$email);
+    $mot_de_passe = mysqli_real_escape_string($conn,$mot_de_passe);
+
+    $mot_de_passe = password_hash($mot_de_passe,PASSWORD_DEFAULT);
+
+       $sql = "INSERT INTO personne(nom,prenom,email,mot_de_passe) values(?,?,?,?)";
+       $stmt = $conn->prepare($sql);
+       $stmt->bind_param("ssss",$nom,$prenom,$email,$mot_de_passe);
+       $result = $stmt->execute();
+       if($result){
+        $id_personne=$conn->insert_id;
+        inscripRole($titre,$id_personne); }
+       else{ echo "Une erreur est survenue";}
+}
+
+function inscripRole($titre,$id_personne){
+    $conn= connexionDB();
+    $sql="INSERT into Role (titre,id_personne) Values(?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("si",$titre,$id_personne);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+      header('Location: ./GestionUtilisateur.php');
+   }  
+}
+
+
+
+
+?>
+
+
+
+<?php
+///AjouterUlisateur
+include './includes/fonctions.inc.php';
+
+$dbhost="localhost";
+$dbuser="root";
+$dbpassword="";
+$dbname="Ferme";
+$port=3306;
+
+if (isset($_POST['envoyer'])){
+        // recup des donnees du formulaire
+$nom = $_POST['nom'];
+$prenom = $_POST['prenom'];
+$email = $_POST['email'];
+$mot_de_passe = $_POST['password'];
+$c_mot_de_passe = $_POST['c-password'];
+
+ 
+        
+        
+if (!empty($nom)&& !empty($prenom)&& !empty($email)&&
+    !empty($mot_de_passe)&& !empty($c_mot_de_passe) ){
+        if($mot_de_passe === $c_mot_de_passe){
+            //  connexion a la base de donnee
+          $conn = mysqli_connect($dbhost,$dbuser,$dbpassword,$dbname,$port);
+      if(!$conn){
+          die("Echec de la connexion a la base de donnee".mysqli_connect_error());
+        }
+           //Verifie si l'utilisateur existe
+           $sqlverify= 'SELECT  * from personne where email= ?';
+     
+ 
+           $result = $conn->prepare($sqlverify);
+           $result->bind_param('s',$email);
+           $result->execute();
+           $resultat = $result->get_result();
+           $resultat = $resultat->fetch_assoc();
+         
+       if(isset($resultat) && count($resultat) >= 1){
+           header('Location: connexion.php');
+           
+           mysqli_close($conn);
+         }
+     //verification terminer./.
+     inscription($nom,$prenom,$email,$mot_de_passe);
+ 
+
+            
+  
+        }
+ }
+}
+
+?>
+<!DOCTYPE html>
+<html lang="fr">
+
+<?php include "./includes/Head_no.php"?>
+
+
+<body>
+
+  <header>
+         <b>
+         <br> 
+        <ul class="nav nav-underline">
+        <div class="logo">
+          <img src="Css/images/logo.jpg" width="40px" heigth="auto" alt=" Bienvenu logo">
+        </div>
+            
+            
+        <li class="nav-item">
+            <a class="nav-link" href="Menu.php">Menu</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="Présentation.php">Présentation</a>
+          </li><br>
+
+          <li class="nav-item">
+            <a class="nav-link" href="Boutique.php">Boutique</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="Mon Compte.php">Mon Compte</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link  active" aria-current="page" href="Inscription.php">Inscription</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="Connexion.php">Connexion</a>
+          </li>
+          
+        </ul>
+        </b>
+  </header>
+  <h1>Inscription</h1>
+                   
+        <div class="card">
+            <div class="card-body">
+        <section>
+                           
+        <div class="container">
+           <form method="post">
+           <div class="mb-3">
+                    <label for="exampleFormControlInput1" class="form-label">Nom</label>
+                    <input type="text" name="nom"  class="form-control"  placeholder="nom">
+            </div>
+            <div class="mb-3">
+                    <label for="exampleFormControlInput1" class="form-label">Prenom</label>
+                    <input type="text"  name="prenom" class="form-control"  placeholder="prenom">
+            </div>
+            
+           <div class="mb-3">
+                    <label for="exampleFormControlInput1" class="form-label">Email address</label>
+                    <input type="email" name="email" class="form-control"  placeholder="nom@exemple.com">
+            </div>
+            <div class="mb-3">
+                    <label for="exampleFormControlInput1" class="form-label">Numero de Telephone</label>
+                    <input type="text"  name="numero" class="form-control" placeholder=" votre nuumero de Telephone">
+            </div>
+            <div class="mb-3">
+                    <label for="exampleFormControlInput1" class="form-label">Mot de passe</label>
+                    <input type="password" name="password" class="form-control"  placeholder="mot de passe">
+            </div>
+            <div class="mb-3">
+                    <label for="exampleFormControlInput1" class="form-label"> confirmer le Mot de passe</label>
+                    <input type="password"  name="c-password" class="form-control"  placeholder="mot de passe">
+            </div>
+          
+            
+            <div >
+                <br>
+                <button type="submit" name="envoyer" class="btn btn-outline-primary">Inscrire</button>
+
+            </div>
+        </form>
+       </div>
+    </section>
+
+        </div>
+    </div>
+        
+</body>
+
+</html>
+
+
+
+
+<?php
+////Last version
+
+session_start();
+
+//unset($_SESSION['panier']);
+if(!isset($_SESSION['panier'])){
+    $_SESSION['panier']=array();
+}
+
+
+function connexionDB(){
+    $dbhost ="localhost";
+    $dbuser = "root";
+    $dbpassword ="";
+    $dbname ="Ferme";
+    $port = 3306;
+
+    $connexion = mysqli_connect($dbhost,$dbuser,$dbpassword,$dbname,$port);
+    if(!$connexion){
+        die("Echec de la connexion a la base de donnee".mysqli_connect_error());
+    }
+    return $connexion;
+}
+
+function ajouterPanier($id,$quantiteDemander){
+    $_SESSION['panier'][$id]=$quantiteDemander;
+
+    header('Location: ./Panier.php');
+}
+function EnregistrerGenisse($nom ,$nom_pere ,$nom_mere ,$prix ,$race,$capacite_lait ,$resistance ,$race_type ,$disponibilite,$chemin){
+
+    $conn= connexionDB();
+    $sql="INSERT into Genisses(nom ,nom_pere ,nom_mere ,prix ,race ,capacite_lait,resistance ,race_type ,disponibilite) Values(?,?,?,?,?,?,?,?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("sssdsdisi",$nom ,$nom_pere ,$nom_mere ,$prix ,$race,$capacite_lait ,$resistance ,$race_type ,$disponibilite);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+    $id_Taureaux=$conn->insert_id;
+    enregistrerImage_Genisse($chemin,$id);
+
+   }
+
+}
+function enregistrerImage_Genisse($chemin,$id){
+
+    $conn= connexionDB();
+    $sql="INSERT into Image_Genisses (chemin,id_Genisses) Values(?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("si",$chemin,$id);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+header('Location: ./GestionGenisses.php');
+   }
+}
+function getAllGenisses(){
+    $Genisses = array();
+    $conn =connexionDB();
+    $sql="SELECT  G.id, G.nom, G.nom_pere,  G.nom_mere, G.capacite_lait, G.prix, G.race, G.resistance, G.disponibilite ,I.chemin from Genisses G
+    join Image_Genisses I on I.id_Genisses=G.id";
+    $stmt=$conn->prepare($sql);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+
+    foreach($resultats as $taureau){
+        $Genisses[]=$genisse;
+    }
+    return $Genisses;
+   
+}
+
+
+
+function countElementPanier(){
+    $taillePanier = count($_SESSION['panier']);
+    return $taillePanier;
+}
+
+function ajouterTaureau($nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite ){
+    $conn = connexionDB();
+
+    $sql ='INSERT INTO Taureaux(nom ,nom_pere ,nom_mere ,prix ,race ,resistance ,race_type ,disponibilite ) Values(?,?,?,?,?,?,?,?)';
+    $stmt = $conn->prepare($sql);
+    // string s, int i, float | double d, bool b
+    $stmt->bind_param('sssdsisi',$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite);
+    $resultat = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+
+    
+   
+}
+function UpdateTaureau($id,$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite ,$image_destination=""){
+
+    $conn =connexionDB();
+    $sql = 'UPDATE Taureaux set nom =?, nom_pere =?, nom_mere =?, prix =?,race =?, resistance =?, race_type=?, disponibilite =?  where id = ?';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('sssdsisii',$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite,$id,);
+    $resultat = $stmt->execute();
+    if ($resultat) {
+        if(!empty($image_destination)){
+            UpdateImage_Taureau($id,$image_destination);
+        }else{
+            header('Location: ./GestionTaureaux.php');
+
+        }
+    }
+  
+
+}
+
+function UpdateImage_Taureau($id_Taureaux,$image_destination){
+
+    $conn =connexionDB();
+    $sql=" UPDATE  Image_Taureaux set chemin =?  where id_Taureaux = ? ";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param('si',$image_destination,$id_Taureaux,);
+    $Est=$stmt->execute();
+    if($Est){
+        header('Location: ./GestionTaureaux.php');
+
+    }
+
+}
+
+function EnregistrerTaureau($nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite,$chemin){
+
+    $conn= connexionDB();
+    $sql="INSERT into Taureaux(nom ,nom_pere ,nom_mere ,prix ,race ,resistance ,race_type ,disponibilite) Values(?,?,?,?,?,?,?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("sssisisi",$nom ,$nom_pere ,$nom_mere ,$prix ,$race ,$resistance ,$race_type ,$disponibilite);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+    $id_Taureaux=$conn->insert_id;
+    enregistrerImage($chemin,$id_Taureaux);
+
+   }
+
+}
+function enregistrerImage($chemin,$id_Taureaux){
+
+    $conn= connexionDB();
+    $sql="INSERT into Image_Taureaux(chemin,id_Taureaux) Values(?,?)";
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param("si",$chemin,$id_Taureaux);
+   $IsSave= $stmt->execute();
+   if($IsSave){
+header('Location: ./GestionTaureaux.php');
+   }
+}
+
+function getAllTaureaux(){
+    $Taureaux = array();
+    $conn =connexionDB();
+    $sql="SELECT  T.id,T.nom,T.nom_pere, T.nom_mere, T.prix,T.race,T.resistance,T.disponibilite ,I.chemin
+     from Taureaux T
+    join Image_Taureaux I on I.id_Taureaux=T.id";
+    $stmt=$conn->prepare($sql);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+
+    foreach($resultats as $taureau){
+        $Taureaux[]=$taureau;
+    }
+    return $Taureaux;
+   
+
+}
+
+
+
+function supprimerTaureau($id){
+    $conn = connexionDB();
+    $sql ='DELETE from Taureaux where id = ?';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $resultat = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+
+    if ($resultat) {
+        header('Location: GestionTaureaux.php');
+    }
+    else{
+        echo 'Une erreur lors de la suppression';
+    }
+}
+
+
+
+function getTaureauById($id){
+    $conn = connexionDB();
+
+    $sql = "SELECT  T.id,T.nom,T.nom_pere, T.nom_mere, T.prix,T.race, T.resistance ,T.race_type ,T.disponibilite,I.chemin from Taureaux T
+    join Image_Taureaux I on I.id_Taureaux=T.id  where T.id=?" ;
+
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $stmt->execute();
+    $resultats = $stmt->get_result();
+
+    $taureau = $resultats->fetch_assoc();
+
+    return $taureau;
+}
+
+function getAllUsers(){
+    $Users=array();
+    $conn =connexionDB();
+   
+     $sql="SELECT  U.id,U.nom,U.prenom,U.email,R.titre from Personne U 
+     join Personne_role R_P on R_P.id_personne = U.id
+     join Role R on R_P.id_role = R.id  ";
+    $stmt= $conn->prepare($sql);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+    foreach($resultats as $user){
+        $Users[]=$user;
+    }
+    return $Users;
+}
+function VerifAdmin($id){
+$conn=connexionDB();
+    // $sql="SELECT  U.id,R.titre from Personne U
+    // join Role  on R.id_personne = U.id R where id =? ";
+    $sql= 'SELECT U.id,R_P.id_role from Personne U join Personne_role R_P on R_P.id_personne=U.id where id=?';
+    $stmt= $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+    $User= $resultats->fetch_assoc();
+    if(isset($User['id_role'])&& $User['id_role']===1){
+    header("Location: ./MenuAdmin.php");
+    }else{
+        header("Location: ./Menu.php");
+
+    }
+
+}
+
+function supprimerUser($id){
+    $conn = connexionDB();
+    $sql ='DELETE from Personne where id = ?';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+    $resultat = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+
+    if ($resultat) {
+        header('Location: ./GestionUtilisateur.php');
+    }
+    else{
+        echo 'Une erreur lors de la suppression';
+    }
+}
+
+function getUserById($id){
+    $conn =connexionDB();
+    // $sql="SELECT  U.id,U.nom,U.prenom,U.email,R.titre from Personne U
+    // join Role R on R.id_personne = U.id  where U.id=? ";
+
+    //A faire joindre Personne ->Role_Personne->Role
+    $sql="SELECT  U.id,U.nom,U.prenom,U.email,R.titre from Personne U join Personne_role R_P on R_P.id_personne = U.id
+     join Role R on R_P.id_role = R.id   where U.id= ? ";
+
+    $stmt= $conn->prepare($sql);
+    $stmt->bind_param('i',$id);
+
+    $stmt->execute();
+    $resultats=$stmt->get_result();
+    $User= $resultats->fetch_assoc();
+    return $User;
+}
+
+function UpdateForUser($nom,$prenom,$email,$mot_de_passe,$id){
+    $conn= connexionDB();
+    $sql='UPDATE Personne set nom=?,prenom=?,email=?,mot_de_passe=? where id=? ';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssssi",$nom,$prenom,$email,$mot_de_passe,$id);
+    $result = $stmt->execute();
+    if($result){
+        header('Location: ./Mon Compte.php');
+    }
+       else{ echo "Une erreur est survenue";}
+}
+function UpdateForAdmin($id,$nom,$prenom,$email,$titre){
+    $conn= connexionDB();
+    $sql='UPDATE Personne set nom= ?,prenom = ?,email= ? where  id= ? ';
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("sssi",$nom,$prenom,$email,$id);
+    $result = $stmt->execute();
+    if($result){
+     UpdateForAdminRole($titre,$id); }
+    else{ echo "Une erreur est survenue";}
+}
+
+
+
+function UpdateForAdminRole($titre,$id){
+ $conn= connexionDB();
+ $sql="UPDATE  Personne_role set id_role =?   where id_personne= ?";
+ $stmt=$conn->prepare($sql);
+ $stmt->bind_param("ii",$titre,$id);
+$IsSave= $stmt->execute();
+if($IsSave){
+   header('Location: ./GestionUtilisateur.php');
+}  
+}
+function AjoutRole($titre=1,){
+    $conn= connexionDB();
+ $sql="INSERT into Personne_role (id_role) values(? )  where id_personne= ?";
+ $stmt=$conn->prepare($sql);
+ $stmt->bind_param("ii",$titre,$id);
+$IsSave= $stmt->execute();
+}
+
+
+
+function inscription($nom,$prenom,$email,$mot_de_passe){
+    $conn =connexionDB();
+    $nom = mysqli_real_escape_string($conn,$nom);
+    $prenom = mysqli_real_escape_string($conn,$prenom);
+    $email = mysqli_real_escape_string($conn,$email);
+    $mot_de_passe = mysqli_real_escape_string($conn,$mot_de_passe);
+
+    $mot_de_passe = password_hash($mot_de_passe,PASSWORD_DEFAULT);
+
+       $sql = "INSERT INTO personne(nom,prenom,email,mot_de_passe) values(?,?,?,?)";
+       $stmt = $conn->prepare($sql);
+       $stmt->bind_param("ssss",$nom,$prenom,$email,$mot_de_passe);
+       $result = $stmt->execute();
+       if($result){
+        //$id_personne=$conn->insert_id;
+        //inscripRole($id_personne);
+        header('Location: ./GestionUtilisateur.php');
+
+     }
+       else{ echo "Une erreur est survenue";}
+}
+
+
+
+
+
+
+?>
+
+
+
+
+
+
+
+<?php
+ 
+///gestion commandes
+
+ include './includes/fonctions.inc.php';
+$Commandes=getAllCommandes();
+?>
+<!DOCTYPE html>
+<html lang="fr">
+
+<?php include "./includes/Head_no.php"?>
+
+<body>
+
+<header>
+         <b>
+         <br> 
+        <ul class="nav nav-underline">
+        <div class="logo">
+          <img src="Css/images/logo.jpg" width="40px" heigth="auto" alt=" Bienvenu logo">
+        </div>
+            
+            
+        <li class="nav-item">
+           
+            <a class="nav-link active" aria-current="page" href="MenuAdmin.php">Menu</a>
+          </li><br>
+          <li class="nav-item">
+          <a class="nav-link" href="Panier.php">Panier</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="GestionGenisses.php">GestionGenisses</a>
+          </li><br>
+          
+          <li class="nav-item">
+          <a class="nav-link  active" aria-current="page" href="GestionTaureaux.php">Gestion des Taureau</a>
+          </li>
+       
+          <li class="nav-item">
+          <a class="nav-link" href="GestionUtilisateur.php">Gestion des Utilisateurs</a>
+          </li>
+         
+        </ul>
+        </b>
+  </header>
+          
+
+<main>
+    <section>
+        <h1 class="text-center">Gestion Commandes </h1>
+       
+        <table class="table table-dark">
+            <thead>
+                <tr> 
+                <th scope="col">#</th>
+                <th scope="col">Utilisateur</th>
+                <th scope="col">DAte de Commande</th>
+                <th Scope="col">Les Taureaux</th>
+                <th Scope="col">Quantite</th>
+                <th scope="col">Total</th>
+                
+
+               
+               
+                
+                </tr>
+            </thead>
+            <tbody>
+               <?php 
+               $i=1;
+               foreach ($Commandes as $Commande) {
+                $id_user= $Commande['id_User'];
+               $user=getUserById($id_user)
+               ?>
+                <tr>
+                    <th scope="row"><?php echo $i++ ;?></th>
+                    <td><?php echo $user['Prenom'];?></td>
+                    <td><?php echo $Commande['date_commande'];?></td>
+                    <td>
+                        <?php 
+                        $tab_commande_produit=getCommandeTaureauById($Commande['id_Commande']);
+                        foreach ($tab_commande_produit as $key=>$value) {
+
+
+                        }
+                        ?>
+                    </td>
+                    <td><?php echo $Commande['prix_total'];?></td>
+                    <td><?php echo $tab_commande_produit[0]['quantite'];?></td>
+
+                    <td class="row bg-transparent">
+                    <div class="col-3">
+                            <a href="modifierTaureau.php?id=<?php echo $taureau['id'];?>" class="btn btn-block btn-success"><i class="bi bi-pencil-square"></i>
+                            </a>    
+                    </div>
+                        <div class="col-3 ">
+                            <a href="supprimerTaureau.php?id=<?php echo $taureau['id'];?>" class="btn btn-block btn-danger"><i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                        <div class="col-3 ">
+                            <a href="vuePanier.php?id=<?php echo $taureau['id'];?>" class="btn btn-block btn-danger">View
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                
+               <?php } ?>
+                
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+
+</html>

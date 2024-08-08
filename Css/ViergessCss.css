@@ -1,0 +1,43 @@
+
+main > section > h1 {
+    margin: 40px 0;
+    text-align: center;
+    font-size: 48px;
+    color: #f9bc64;
+    background-color: #f7f8f8;
+  }
+  main > section > div {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    justify-items: center;
+    align-items: center;
+  }
+  section > div > div {
+    padding: 0 20px 40px 20px;
+  }
+  section > div img {
+    min-width: 200px;
+    max-width: 300px;
+    padding: 0 20px;
+}
+main > section {
+    background-color: #f9bc64;
+    align-items: underline;
+    justify-content: center;
+    justify-items: center;
+    align-items: center;
+}
+p {
+  text-align: center;
+  width: 100%;
+
+  min-width: 960px;
+  margin: 0 auto;
+  font-family: 'Trebuchet MS', sans-serif;
+  font-weight: bold;
+  background-color: rgb(38, 39, 46);
+   opacity: 60%;
+  color: #f7f8f8;
+}
